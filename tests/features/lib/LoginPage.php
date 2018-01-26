@@ -19,7 +19,7 @@ class LoginPage extends Page {
 	protected $userInputBoxName = "username";
 	protected $passwordInputBoxName = "password";
 	protected $errorMessageXpath = '//div[@class="errorMessage"]';
-	
+	protected $path='/admin.php';
 	/**
 	 *
 	 * @param string $username
@@ -68,4 +68,5 @@ class LoginPage extends Page {
 		$realErrorMessage = $this->find('xpath', $this->errorMessageXpath);
 		return $realErrorMessage->getHtml();
 	}
+	
 }

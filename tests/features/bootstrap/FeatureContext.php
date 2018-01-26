@@ -6,6 +6,8 @@ use Behat\MinkExtension\Context\RawMinkContext;
 use Page\LoginPage;
 use Page\ArticlePage;
 use Page\EditArticlePage;
+use Page\AdminPage;
+use Page\CMSPage;
 
 require_once 'bootstrap.php';
 
@@ -21,6 +23,8 @@ class FeatureContext extends RawMinkContext implements Context {
 	 */
 	protected $articlePage;
 	protected $editPage;
+	protected $adminPage;
+	protected $cmsPage;
 	/**
 	 * Initializes context.
 	 *
@@ -31,12 +35,16 @@ class FeatureContext extends RawMinkContext implements Context {
 	 * @param LoginPage $loginPage
 	 * @param ArticlePage $articlePage
 	 * @param EditArticlePage $editPage
+	 * @param AdminPage $adminPage
 	 * @return void
 	 */
-	public function __construct(LoginPage $loginPage, ArticlePage $articlePage, EditArticlePage $editPage) {
+	public function __construct(LoginPage $loginPage, ArticlePage $articlePage, EditArticlePage $editPage, AdminPage $adminPage, CMSPage $cmsPage) {
 		$this->loginPage = $loginPage;
 		$this->articlePage = $articlePage;
 		$this->editPage = $editPage;
+		$this->adminPage = $adminPage;
+		$this->cmsPage = $cmsPage;
+		
 	}
 
     /**
@@ -44,7 +52,7 @@ class FeatureContext extends RawMinkContext implements Context {
      */
     public function iAmOnTheLoginPage()
     {
-        $this->visitPath("/admin.php");
+        $this->loginPage->open();
     }
 	
 	/**
@@ -63,8 +71,8 @@ class FeatureContext extends RawMinkContext implements Context {
      */
     public function iShouldBeRedirectedToThePageWithTheTitle($title)
     {
-        $titleElement = $this->getSession()->getPage()->find('xpath', '//title');
-        if ($titleElement->getHtml()!=$title) {
+        $titleElement = $this->cmsPage->titlePage();
+        if ($titleElement->getHtml() !== $title) {
             throw new \Exception("title does not match the expected");
         }
        }
@@ -95,7 +103,7 @@ class FeatureContext extends RawMinkContext implements Context {
 	 * @return void
 	 */
 	public function iGotoAddaNewArticle() {
-		$this->getSession()->getPage()->find('xpath', '//a[@href="admin.php?action=newArticle"]')->click();
+		$this->adminPage->addArticle();
 	}
 	
 	/**
@@ -133,7 +141,7 @@ class FeatureContext extends RawMinkContext implements Context {
      */
     public function aNotificationShouldBeDisplayedWithTheText($notification)
     {
-    	$realNotification = $this->getSession()->getPage()->find('xpath', '//div[@class="statusMessage"]');
+    	$realNotification = $this->cmsPage->getStatusMessage();
     	if ($realNotification->getHtml()!=$notification) {
     		throw new \Exception("notification does not match the expected");
     	}
@@ -144,13 +152,13 @@ class FeatureContext extends RawMinkContext implements Context {
      */
     public function theArticleShouldBeListed($title,$date)
     {
-        $titleElement = $this->getSession()->getPage()->find('xpath', '//tr/td[2][text()[normalize-space()="'.$title.'"]]');
-        $dateElement = $this->getSession()->getPage()->find('xpath','//tr/td[1][text()[normalize-space()="'.$date.'"]]');
-        if($dateElement === NULL || trim($dateElement->getHtml()) !== $date)
+        $realTitle = $this->cmsPage->getTitle($title);
+        $dateElement = $this->cmsPage->getDate($date);
+        if ($realDate !== $date)
         {
             throw new \Exception("Expected article with date does not exist");
         }
-        if ($titleElement === NULL || trim($titleElement->getHtml() ) !== $title)
+        if ($realTitle !== $title)
         {
             throw new \Exception("Expected article with title does not exist");
         }
@@ -161,7 +169,7 @@ class FeatureContext extends RawMinkContext implements Context {
      */
     public function iOpenTheArticleWithTheTitle($title)
     {
-       $this->getSession()->getPage()->find("xpath",'//td[text()[normalize-space() = "'.$title.'"]]')->click();
+       $this->adminPage->openArticle($title);
     }
 
 	/**
@@ -182,6 +190,7 @@ class FeatureContext extends RawMinkContext implements Context {
 	 */
 	public function aMessageBoxMustAppearWithTheMessage($comment) {
 		$message = $this->getSession()
+		
 			->getDriver()
 			->getWebDriverSession()
 			->getAlert_text();
@@ -195,6 +204,8 @@ class FeatureContext extends RawMinkContext implements Context {
      */
     public function iConfirmTheDeleteAction()
     {
+    	
+    	
         $this->getSession()->getDriver()->getWebDriverSession()->accept_alert();
     }
     /**
@@ -202,7 +213,7 @@ class FeatureContext extends RawMinkContext implements Context {
      */
     public function aMessageShouldBeDisplayedWithTheText($message)
     {
-        $realMessage = $this->getSession()->getPage()->find('xpath', '//div[@class="statusMessage"]');
+    	$realMessage = $this->cmsPage->getStatusMessage();
         if ($realMessage->getHtml()!==$message) {
             throw new \Exception("notification does not match the expected");
         }
@@ -212,7 +223,7 @@ class FeatureContext extends RawMinkContext implements Context {
      */
     public function theArticleWithTheTitleShouldNotBeListed($title)
     {
-       $titleField=$this->getSession()->getPage()->find("xpath",'//td[text()[normalize-space() = "'.$title.'"]]');
+       $titleField=$this->adminPage->openArticle($title);
        if ($titleField!==null) {
            throw new \Exception("The article with the $title is not supposed to be listed but is listed");
        }
